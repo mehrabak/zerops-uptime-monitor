@@ -2,6 +2,13 @@
 
 A lightweight, production-minded uptime monitoring stack designed for reliability, observability, and rapid iteration — built to win hackathons and ship with confidence.
 
+[![CI](https://github.com/mehrabak/zerops-uptime-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/mehrabak/zerops-uptime-monitor/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+
+A short demo (replace with your recorded GIF):
+
+![demo](assets/demo.gif)
+
 Key highlights
 - Designed for clarity: minimal, modular services (backend, worker, frontend).
 - Observability-first: logs, health checks, and clear alerting hooks.
@@ -36,20 +43,20 @@ Prerequisites: Node.js 20+, npm
 cd backend
 npm install
 cp .env.example .env  # populate any required vars
-node server.js
+SEED_SAMPLE=true node server.js
 
 2. Worker
 
 cd worker
 npm install
 cp .env.example .env  # ensure worker has the correct API URL and credentials
-node index.js
+WORKER_API_URL=http://localhost:3001 node index.js
 
 3. Frontend
 
 cd frontend
 npm install
-npm start
+node index.js
 
 Key environment variables
 - BACKEND_PORT — port the backend listens on (default: 3000)
@@ -66,6 +73,10 @@ How to demo for judges
 2. Trigger a simulated failure (change expected response or block the endpoint) and show the worker detecting it and the backend recording the event.
 3. Show logs and the alert delivery to a webhook/Slack channel.
 4. Discuss extension points: authentication, distributed tracing, and additional notifier integrations.
+
+Troubleshooting
+- If the frontend shows seeded demo monitors, it means the backend was not reachable; ensure backend is running on port 3001 or set REACT_APP_API to the correct URL.
+- To force demo samples during a live demo set: `SEED_SAMPLE=true` when starting the backend.
 
 Development and testing
 - Add unit tests for worker probe logic and backend API routes.
