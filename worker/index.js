@@ -1,51 +1,62 @@
 const axios = require('axios');
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.WORKER_API_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+const INTERVAL = parseInt(process.env.CHECK_INTERVAL_MS || '10000', 10);
+let intervalId = null;
 
-async function performHealthChecks() {
+async function probe(monitor) {
+  const start = Date.now();
   try {
-    const res = await axios.get(`${BACKEND_URL}/api/monitors`);
-    const monitors = res.data;
+    const res = await axios.get(monitor.url, { timeout: 8000, validateStatus: null });
+    const latency = Date.now() - start;
+    const status = (res.status >= 200 && res.status < 400) ? 'UP' : 'DOWN';
 
-    console.log(`[Worker Engine] Inspecting ${monitors.length} targets...`);
+    await axios.post(`${BACKEND_URL}/api/monitors/update`, {
+      id: monitor.id,
+      status,
+      statusCode: res.status,
+      latency
+    }).catch(err => console.error('[Worker] Failed to update backend:', err.message));
 
-    for (const item of monitors) {
-      const startTime = Date.now();
-      let status = 'DOWN';
-      let statusCode = 0;
-      let latency = 0;
-
-      try {
-        const checkRes = await axios.get(item.url, { 
-          timeout: 6000,
-          headers: { 'User-Agent': 'Zerops-Uptime-Bot/1.0' } 
-        });
-        
-        statusCode = checkRes.status;
-        if (statusCode >= 200 && statusCode < 400) {
-          status = 'UP';
-        }
-      } catch (err) {
-        status = 'DOWN';
-        statusCode = err.response ? err.response.status : 504; // Gateway Timeout or Connection Error
-      }
-
-      latency = Date.now() - startTime;
-
-      // Report metrics to backend
-      await axios.post(`${BACKEND_URL}/api/monitors/update`, {
-        id: item.id,
-        status,
-        statusCode,
-        latency: status === 'UP' ? latency : 0
-      });
-
-      console.log(`[Check] ${item.url} | Status: ${statusCode} | Latency: ${latency}ms`);
-    }
-  } catch (error) {
-    console.error('[Worker Error]', error.message);
+  } catch (err) {
+    const latency = Date.now() - start;
+    console.error('[Worker] Probe error for', monitor.url, err.message);
+    await axios.post(`${BACKEND_URL}/api/monitors/update`, {
+      id: monitor.id,
+      status: 'DOWN',
+      statusCode: 0,
+      latency
+    }).catch(e => console.error('[Worker] Failed to update backend:', e.message));
   }
 }
 
-setInterval(performHealthChecks, 8000);
-performHealthChecks();
+async function checkMonitors() {
+  console.log('[Worker] Running automated background health check...');
+  try {
+    const res = await axios.get(`${BACKEND_URL}/api/monitors`, { timeout: 5000 });
+    const monitors = Array.isArray(res.data) ? res.data : [];
+
+    await Promise.all(monitors.map(m => probe(m)));
+    console.log(`[Worker] Completed checks for ${monitors.length} monitors`);
+  } catch (err) {
+    console.error('[Worker] Failed to fetch monitors from backend:', err.message);
+  }
+}
+
+function start() {
+  // Run immediately then schedule
+  checkMonitors();
+  intervalId = setInterval(checkMonitors, INTERVAL);
+  console.log(`[Worker] Health monitoring service online. Backend: ${BACKEND_URL} Interval: ${INTERVAL}ms`);
+}
+
+function shutdown() {
+  console.log('[Worker] Shutting down...');
+  if (intervalId) clearInterval(intervalId);
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+start();
