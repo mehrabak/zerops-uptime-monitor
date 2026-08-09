@@ -33,6 +33,25 @@ let monitors = [
   }
 ];
 
+// Health endpoint for smoke checks
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString(), monitors: monitors.length });
+});
+
+// Optional seeding: set SEED_SAMPLE=true to populate demo monitors on startup
+function seedDemoMonitors() {
+  if (process.env.SEED_SAMPLE === 'true' || monitors.length === 0) {
+    monitors = [
+      { id: '1', url: 'https://api.product.example', status: 'UP', statusCode: 200, latency: 42, uptimePercent: 99.9, history: [45,43,40,42,39,44,41], totalChecks: 10, successfulChecks: 10, lastChecked: new Date().toLocaleTimeString() },
+      { id: '2', url: 'https://auth.example', status: 'UP', statusCode: 200, latency: 120, uptimePercent: 99.1, history: [130,125,118,121,119,122,120], totalChecks: 10, successfulChecks: 10, lastChecked: new Date().toLocaleTimeString() },
+      { id: '3', url: 'https://payments.example', status: 'DEGRADED', statusCode: 503, latency: 820, uptimePercent: 96.5, history: [720,800,852,790,820], totalChecks: 12, successfulChecks: 11, lastChecked: new Date().toLocaleTimeString() }
+    ];
+  }
+}
+
+// run seed at startup
+seedDemoMonitors();
+
 // GET All Monitors with Analytics
 app.get('/api/monitors', (req, res) => {
   res.json(monitors);
