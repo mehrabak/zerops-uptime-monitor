@@ -1,0 +1,31 @@
+zerops:
+  - setup: backend
+      build:
+            base: nodejs@20
+                  buildCommands:
+                          - cd backend && npm install
+                                deployFiles:
+                                        - backend/~
+                                            run:
+                                                  start: cd backend && node server.js
+
+                                                    - setup: worker
+                                                        build:
+                                                              base: nodejs@20
+                                                                    buildCommands:
+                                                                            - cd worker && npm install
+                                                                                  deployFiles:
+                                                                                          - worker/~
+                                                                                              run:
+                                                                                                    start: cd worker && node index.js
+
+                                                                                                      - setup: frontend
+                                                                                                          build:
+                                                                                                                base: nodejs@20
+                                                                                                                      buildCommands:
+                                                                                                                              - cd frontend && npm install
+                                                                                                                                    deployFiles:
+                                                                                                                                            - frontend/~
+                                                                                                                                                run:
+                                                                                                                                                      start: cd frontend && node index.js
+                                                                                                                                                      
