@@ -1,61 +1,151 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Zerops Uptime Monitor</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-900 text-white p-6 font-sans">
-          <div class="max-w-2xl mx-auto">
-              <h1 class="text-3xl font-bold mb-2 text-green-400">Zerops Uptime Monitor</h1>
-                  <p class="text-gray-400 mb-6">Real-time status monitor running on 3 Zerops Services.</p>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zerops Pulse - Infrastructure Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen p-4 sm:p-8 font-sans">
+  <div class="max-w-4xl mx-auto">
+    
+    <!-- Top Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-800 pb-5 mb-8 gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-3xl font-black tracking-tight text-white">Zerops<span class="text-green-400">Pulse</span></h1>
+          <span class="bg-green-500/10 text-green-400 border border-green-500/30 text-xs px-2.5 py-1 rounded-md font-mono">v2.0 Analytics</span>
+        </div>
+        <p class="text-gray-400 text-sm mt-1">Multi-service synthetic API health & latency analytics dashboard</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 bg-green-500 rounded-full animate-ping"></span>
+        <span class="text-xs text-gray-400 font-mono">Real-time Polling Active</span>
+      </div>
+    </div>
 
-                      <div class="bg-gray-800 p-4 rounded-lg mb-6 shadow">
-                            <h2 class="text-xl font-semibold mb-3">Add Endpoint</h2>
-                                  <div class="flex gap-2">
-                                          <input id="urlInput" type="text" placeholder="https://example.com" class="flex-1 bg-gray-700 p-2 rounded border border-gray-600 text-white focus:outline-none">
-                                                  <button onclick="addMonitor()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded">Add</button>
-                                                        </div>
-                                                            </div>
+    <!-- Input Box -->
+    <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl mb-8 shadow-xl">
+      <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Add Monitoring Target</h2>
+      <div class="flex gap-3">
+        <input id="urlInput" type="text" placeholder="https://api.myapp.com" class="flex-1 bg-gray-950 border border-gray-800 p-3.5 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition font-mono text-sm">
+        <button onclick="addMonitor()" class="bg-green-500 hover:bg-green-400 text-black font-bold px-6 py-3.5 rounded-xl transition text-sm">Deploy Probe</button>
+      </div>
+    </div>
 
-                                                                <div id="monitorsList" class="space-y-3"></div>
-                                                                  </div>
+    <!-- Dashboard Cards Container -->
+    <div class="space-y-4">
+      <h2 class="text-lg font-bold text-gray-200">System Metrics</h2>
+      <div id="monitorsList" class="space-y-4">
+        <div class="text-gray-500 text-center py-10">Connecting to Zerops Backend...</div>
+      </div>
+    </div>
 
-                                                                    <script>
-                                                                        async function fetchMonitors() {
-                                                                              try {
-                                                                                      const res = await fetch('/api/monitors');
-                                                                                              const data = await res.json();
-                                                                                                   const container = document.getElementById('monitorsList');
-                                                                                                              container.innerHTML = data.map(m => `
-                                                                                                                        <div class="bg-gray-800 p-4 rounded flex justify-between items-center border-l-4 ${m.status === 'UP' ? 'border-green-500' : 'border-red-500'}">
-                                                                                                                                    <div>
-                                                                                                                                                  <div class="font-bold">${m.url}</div>
-                                                                                                                                                                <div class="text-xs text-gray-400">Latency: ${m.latency}ms</div>
-                                                                                                                                                                            </div>
-                                                                                                                                                                                        <span class="px-3 py-1 rounded text-xs font-bold ${m.status === 'UP' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}">${m.status}</span>
-                                                                                                                                                                                                  </div>
-                                                                                                                                                                                                          `).join('');
-                                                                                                                                                                                                                } catch (e) {
-                                                                                                                                                                                                                       console.error(e);
-                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                  }
+  </div>
 
-                                                                                                                                                                                                                                      async function addMonitor() {
-                                                                                                                                                                                                                                            const url = document.getElementById('urlInput').value;
-                                                                                                                                                                                                                                                  if (!url) return;
-                                                                                                                                                                                                                                                        await fetch('/api/monitors', {
-                                                                                                                                                                                                                                                                method: 'POST',
-                                                                                                                                                                                                                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                                                                                                                                                                                                                                body: JSON.stringify({ url })
-                                                                                                                                                                                                                                                                                      });
-                                                                                                                                                                                                                                                                                            document.getElementById('urlInput').value = '';
-                                                                                                                                                                                                                                                                                                  fetchMonitors();
-                                                                                                                                                                                                                                                                                                   }
+  <script>
+    let charts = {};
 
-                                                                                                                                                                                                                                                                                                          fetchMonitors();
-                                                                                                                                                                                                                                                                                                              setInterval(fetchMonitors, 5000);
-                                                                                                                                                                                                                                                                                                                </script>
-                                                                                                                                                                                                                                                                                                                </body>
-                                                                                                                                                                                                                                                                                                                </html>
+    async function fetchMonitors() {
+      try {
+        const res = await fetch('/api/monitors');
+        const data = await res.json();
+        const container = document.getElementById('monitorsList');
+
+        if (data.length === 0) {
+          container.innerHTML = `<div class="text-gray-500 text-center py-10">No active targets found.</div>`;
+          return;
+        }
+
+        container.innerHTML = data.map(m => `
+          <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <div>
+                <div class="flex items-center gap-3">
+                  <span class="font-mono text-lg font-bold text-white">${m.url}</span>
+                  <span class="text-xs px-2 py-0.5 rounded font-mono ${m.statusCode === 200 ? 'bg-gray-800 text-green-400' : 'bg-red-950 text-red-400'}">HTTP ${m.statusCode}</span>
+                </div>
+                <div class="text-xs text-gray-400 mt-1 font-mono">
+                  Uptime: <span class="text-green-400 font-bold">${m.uptimePercent}%</span> | 
+                  Latency: <span class="text-white font-bold">${m.latency}ms</span> | 
+                  Last Check: ${m.lastChecked}
+                </div>
+              </div>
+
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold ${
+                m.status === 'UP' ? 'bg-green-500/10 text-green-400 border border-green-500/30' :
+                m.status === 'DOWN' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
+                'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
+              }">${m.status}</span>
+            </div>
+
+            <!-- Mini Latency Graph -->
+            <div class="h-24 w-full bg-gray-950 p-2 rounded-xl border border-gray-800/50">
+              <canvas id="chart-${m.id}"></canvas>
+            </div>
+          </div>
+        `).join('');
+
+        // Render Charts for each item
+        data.forEach(m => {
+          const ctx = document.getElementById(`chart-${m.id}`);
+          if (!ctx) return;
+
+          if (charts[m.id]) {
+            charts[m.id].destroy();
+          }
+
+          charts[m.id] = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: m.history.map((_, i) => `#${i + 1}`),
+              datasets: [{
+                label: 'Latency (ms)',
+                data: m.history,
+                borderColor: '#22c55e',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { display: false },
+                y: { display: false, beginAtZero: true }
+              }
+            }
+          });
+        });
+
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function addMonitor() {
+      const input = document.getElementById('urlInput');
+      const url = input.value.trim();
+      if (!url) return;
+
+      await fetch('/api/monitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      input.value = '';
+      fetchMonitors();
+    }
+
+    fetchMonitors();
+    setInterval(fetchMonitors, 5000);
+  </script>
+</body>
+</html>
